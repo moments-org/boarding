@@ -107,6 +107,12 @@ To secure your webpage, you only have to set the `ITC_TOKEN` environment variabl
 
 With Heroku you can easily use your own domain, follow [this guide](https://devcenter.heroku.com/articles/custom-domains).
 
+## Re-inviting a user
+
+A common issue with TestFlight external testing is that users don't get the first email from iTunes (it gets caught in spam, or simply lost in their inbox). Any further emails you send (e.g. about updates) you need to ask them to "look for the email for iTunes". It's confusing and you lose testers.
+
+To avoid this, ```boarding``` provides an easy way to re-send an invitation to a given email address. Simply send testers a "Didn't get the email? Click to re-send it" link to ```https://url.com/resend?email={encodeURIComponent(testerEmailAddress)}```.
+
 # How does this work?
 
 `boarding` is part of [fastlane](https://fastlane.tools), which helps you automate everything you usually do manually as an iOS developer. 

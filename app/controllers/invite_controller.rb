@@ -84,6 +84,78 @@ class InviteController < ApplicationController
     render :index
   end
 
+  def resend
+    if @message # from a `before_action`
+      render :index
+      return
+    end
+
+    email = params[:email]
+    first_name = params[:first_name]
+    last_name = params[:last_name]
+
+    if ENV["ITC_TOKEN"]
+      if ENV["ITC_TOKEN"] != params[:token]
+        @message = t(:message_invalid_password)
+        @type = "danger"
+        render :index
+        return
+      end
+    end
+
+    if email.length == 0
+      render :index
+      return
+    end
+
+    logger.info "Going to resend to existing tester: #{email} - #{first_name} #{last_name}"
+
+    begin
+      login
+
+      tester = Spaceship::Tunes::Tester::External.find(email)
+
+      if tester
+        logger.info "Existing external tester #{tester.email}"
+        first_name ||= tester.first_name
+        last_name ||= tester.last_name
+        tester.delete!
+        logger.info "Successully removed tester #{tester.email}, adding it back..."
+        tester = Spaceship::Tunes::Tester::External.create!(email: email, first_name: first_name, last_name: last_name)
+        logger.info "Successully re-created tester #{tester.email}"
+      else
+        logger.info "No tester found under #{email}, creating one anyway"
+        tester = Spaceship::Tunes::Tester::External.create!(email: email)
+      end
+
+      if apple_id.length > 0
+        logger.info "Addding tester to application"
+        tester.add_to_app!(apple_id)
+        logger.info "Done"
+      end
+
+      if testing_is_live?
+        @message = t(:message_success_live)
+      else
+        @message = t(:message_success_pending)
+      end
+      @type = "success"
+    rescue => ex
+      if ex.inspect.to_s.include?"EmailExists"
+        @message = t(:message_email_exists)
+        @type = "danger"
+      else
+        Rails.logger.fatal ex.inspect
+        Rails.logger.fatal ex.backtrace.join("\n")
+
+        @message = t(:message_error)
+        @type = "danger"
+      end
+    end
+
+    render :index
+  end
+
   private
     def user
       ENV["ITC_USER"] || ENV["FASTLANE_USER"]
